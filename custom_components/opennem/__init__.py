@@ -1,6 +1,7 @@
 """ OpenNEM """
 import logging
 import datetime
+import math
 
 import voluptuous as vol
 
@@ -357,7 +358,7 @@ class OpenNEMDataUpdateCoordinator(DataUpdateCoordinator):
                 else:
                     if edata is not None:
                         if edata.get("response_status") == "ERROR":
-                            self._values["emissions_factor"] = 0
+                            self._values["emissions_factor"] = math.nan
                             regiondata.append("emissions_factor")
                             _LOGGER.debug("OpenNEM [%s]: Error reported on emissions factor data", region)
                         else:

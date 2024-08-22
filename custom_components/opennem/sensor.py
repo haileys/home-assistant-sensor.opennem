@@ -3,6 +3,7 @@ import logging
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.sensor import SensorStateClass
 from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -32,9 +33,53 @@ async def async_setup_entry(
     """Setup Sensor Platform"""
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
     config_entry_unique_id = config_entry.unique_id
-    async_add_entities([OpenNEMSensor(coordinator, config_entry_unique_id)], True)
+    entities = [
+        OpenNEMSensor(coordinator, config_entry_unique_id),
+        EmissionsFactorsSensor(coordinator, config_entry_unique_id),
+    ]
+    async_add_entities(entities, True)
     _LOGGER.debug("OpenNEM: Sensor Setup Complete")
 
+class OpenNEMCoordinatorEntity(CoordinatorEntity):
+    coordinator: OpenNEMDataUpdateCoordinator
+
+    icon = DEFAULT_ICON
+
+    def __init__(
+        self, coordinator: OpenNEMDataUpdateCoordinator, config_entry_unique_id: str
+    ) -> None:
+        super().__init__(coordinator)
+        self._region = coordinator._region
+        self._attr_unique_id = f"{config_entry_unique_id}_{self.unique_key}"
+        self._attr_device_info = self.device_info
+
+    @property
+    def device_info(self):
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.config.entry_id)},
+            name=f"{DEFAULT_NAME} {self.coordinator.region_name.upper()}",
+            entry_type=DeviceEntryType.SERVICE,
+            configuration_url="https://opennem.org.au/",
+            manufacturer="OpenNEM",
+            model=f"{self._region.upper()}",
+        )
+
+    @property
+    def name(self):
+        return f"{DEFAULT_NAME} {self.coordinator.region_name.upper()} {self.sensor_name}"
+
+class EmissionsFactorsSensor(OpenNEMCoordinatorEntity):
+    unique_key = "emissions_factor"
+    sensor_name = "Emissions Factor"
+    unit_of_measurement = "kgCO2e/kWh"
+    state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def state(self):
+        if self.coordinator.data:
+            return self.coordinator.data.get("emissions_factor")
+        else:
+            return None
 
 class OpenNEMSensor(CoordinatorEntity):
     """Representation of Sensor"""

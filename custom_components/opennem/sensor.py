@@ -73,13 +73,16 @@ class EmissionsFactorsSensor(OpenNEMCoordinatorEntity):
     sensor_name = "Emissions Factor"
     unit_of_measurement = "kgCO2e/kWh"
     state_class = SensorStateClass.MEASUREMENT
+    _value = None
 
     @property
     def state(self):
         if self.coordinator.data:
-            return self.coordinator.data.get("emissions_factor")
-        else:
-            return None
+            value = self.coordinator.data.get("emissions_factor")
+            if value is not None:
+                self._value = value
+
+        return self._value
 
 class OpenNEMSensor(CoordinatorEntity):
     """Representation of Sensor"""

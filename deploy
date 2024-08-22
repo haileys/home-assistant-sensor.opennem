@@ -1,0 +1,5 @@
+#!/bin/bash
+set -euo pipefail
+
+(cd custom_components && git archive HEAD opennem) |
+    ssh root@hass.lan.hails.org tar -C homeassistant/custom_components -xvf -
